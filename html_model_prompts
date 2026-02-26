@@ -1,0 +1,38 @@
+I want a full HTML document with:
+a top panel with a row-style list of the vocabulary words (randomized order) (ignore part before "->", it's just a record of the student error), in a kind of simple "button" format.
+a bottom panel with:
+- one column with space for a "success indicator" e.g. a smiley face
+- one column with a simple ESL-style definition of the vocabulary item (NOT dictionary-style precision)
+
+It should function as follows
+- the currently active row (default to first) should be highlighted with a light grey background
+- when a vocabulary item is clicked, if it matches the definition:
+  - the "success" indicator in the left column should appear and the text should turn green
+- when the item clicked does not match the definition, it should briefly flash red
+- when an item is successfully matched, the vocabulary "button" should turn green and no longer be clickable
+- when all items are matched, overlay a "success!" animation, lasting about 2 seconds
+
+
+
+
+I want a full HTML document with:
+- a top panel with 
+  - a row-style list of the vocabulary words (randomized order) (ignore part before "->", it's just a record of the student error), in a kind of simple "button" format.
+- a bottom panel with:
+  - one column with a simple ESL-style definition of the vocabulary item (NOT dictionary-style precision)
+- a full screen mode icon top right
+
+It should function as follows
+- a (RANDOMIZED) definition is presented
+- if the incorrect button is pressed, it should briefly flash
+- if the correct button is pressed, the button turns green and is no longer selectable
+- upon completion display a 2-second "success" animation
+
+
+
+OK before this gets unwieldly, I want you to create a prompt for a new session that precisely instructs the new chat to recreate the current setup: index.html, logic.js, server.js, and ui.js.
+
+ALSO: 
+SIMPLIFY the buttons/UI interaction: 
+- only buttons top left for Sorter, LLM and Save/Load and buttons top right for sort bins by size and 
+- no auto-popup of LLM model

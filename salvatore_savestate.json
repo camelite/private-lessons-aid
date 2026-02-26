@@ -1,0 +1,182 @@
+{
+  "v": 2,
+  "exportedAt": "2026-02-13T14:25:34.582Z",
+  "queue": [],
+  "bins": {
+    "q": [],
+    "w": [
+      {
+        "id": "1770992598937_364940c4ba8358",
+        "text": "x probem to understand -> a problem understanding"
+      },
+      {
+        "id": "1770992598937_a2a73c6c0577e8",
+        "text": "make happy <-> somebody"
+      }
+    ],
+    "e": [],
+    "r": [],
+    "t": [
+      {
+        "id": "1770992598937_774b80a2cfa2a",
+        "text": "search FOR"
+      },
+      {
+        "id": "1770992598937_e55c1370a0f17",
+        "text": "scared OF (not) __ING"
+      },
+      {
+        "id": "1770992598937_3be05f4170d2",
+        "text": "scared that …."
+      },
+      {
+        "id": "1770992598937_9b8ed59e06fe9",
+        "text": "happy WITH/ABOUT"
+      },
+      {
+        "id": "1770992598937_ffa8d0877dde4",
+        "text": "in parallel WITH"
+      },
+      {
+        "id": "1770992598937_92ee502d5ed2c8",
+        "text": "depends ON"
+      },
+      {
+        "id": "1770992598937_e5d8c249c73c88",
+        "text": "come in -> to"
+      },
+      {
+        "id": "1770992598937_1e86a23100bf1",
+        "text": "in -> AT the same time"
+      }
+    ],
+    "y": [],
+    "u": [],
+    "i": [
+      {
+        "id": "1770992598937_920eca5ddd0da8",
+        "text": "now they make -> they are making"
+      },
+      {
+        "id": "1770992598937_cc46fb4dd1be8",
+        "text": "FOR 15 years / since 15 years ago"
+      },
+      {
+        "id": "1770992598937_5649ba511fe388",
+        "text": "for finding -> to find"
+      }
+    ],
+    "o": [],
+    "p": [
+      {
+        "id": "1770992598937_190984328dbfe",
+        "text": "scene = /s ee n/"
+      },
+      {
+        "id": "1770992598937_2390f934c5bf48",
+        "text": "/l ar j ‘ st/"
+      },
+      {
+        "id": "1770992598937_1f1d55de4e0f38",
+        "text": "level = /l e v ‘ l/"
+      }
+    ],
+    "a": [
+      {
+        "id": "1770992598937_a1b43a1262e11",
+        "text": "hide -> hidden mike"
+      },
+      {
+        "id": "1770992598937_30daa40ba09b08",
+        "text": "ambient -> environmental sounds"
+      }
+    ],
+    "s": [
+      {
+        "id": "1770992598937_9446babb70db78",
+        "text": "in charge of"
+      },
+      {
+        "id": "1770992598937_cb7efe8f2c4f98",
+        "text": "manageable"
+      },
+      {
+        "id": "1770992598937_58866d176e6fd8",
+        "text": "riuscire = manage to"
+      },
+      {
+        "id": "1770992598937_54492b0bb26638",
+        "text": "working relationship"
+      },
+      {
+        "id": "1770992598937_880646fd0433b8",
+        "text": "search the people -> look up the people"
+      },
+      {
+        "id": "1770992598937_be24f3ef6e3678",
+        "text": "respect of -> compared to"
+      },
+      {
+        "id": "1770992598937_b55f4ca2cb6e5",
+        "text": "get something wrong"
+      }
+    ],
+    "d": [
+      {
+        "id": "1770992598937_fef2eb4b65a66",
+        "text": "past of can is could"
+      },
+      {
+        "id": "1770992598937_f9e3aaaa9d4b3",
+        "text": "in the less time -> in the least time possible"
+      },
+      {
+        "id": "1770992598937_5f8c9962b394c8",
+        "text": "decide whether to … or not"
+      },
+      {
+        "id": "1770992598937_4781801dfca55",
+        "text": "until"
+      },
+      {
+        "id": "1770992598937_1faf6d5eee364",
+        "text": "either .. or"
+      },
+      {
+        "id": "1770992598937_4daba074743de",
+        "text": "wait FOR/UNTIL …"
+      }
+    ],
+    "f": [
+      {
+        "id": "1770992598937_8f23d8e0a59ca",
+        "text": "work = uncount (do better work/do a better job)"
+      }
+    ],
+    "g": [
+      {
+        "id": "1770992598937_e0b2cb0d4d7cb",
+        "text": "make -> DO sound production"
+      }
+    ],
+    "h": []
+  },
+  "binOrder": [
+    "t",
+    "s",
+    "d",
+    "i",
+    "p",
+    "w",
+    "a",
+    "f",
+    "g",
+    "q",
+    "r",
+    "y",
+    "u",
+    "o",
+    "h",
+    "e"
+  ]
+}

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ESL Designer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --border: #d9dde5;
+        --primary: #2563eb;
+        --primary-soft: #e0e7ff;
+        --text: #0f172a;
+        --muted: #6b7280;
+        --warning: #f97316;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      button {
+        border: 1px solid var(--border);
+        background: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+
+      button.primary {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+
+      button.ghost {
+        background: transparent;
+      }
+
+      button.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      main {
+        padding: 16px;
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
+      .current-entry {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .hint {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      .sorter-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 16px;
+      }
+
+      @media (max-width: 1000px) {
+        .sorter-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+      }
+
+      .panel + .panel {
+        margin-top: 12px;
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .bins-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        align-items: start;
+      }
+
+      .bin-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px;
+        background: #fff;
+      }
+
+      .bin-card.selected {
+        outline: 2px solid var(--primary);
+      }
+
+      .bin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        margin-bottom: 6px;
+        cursor: pointer;
+        gap: 6px;
+      }
+
+      .bin-header small {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .bin-items {
+        min-height: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .bin-item {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 6px 8px;
+        cursor: pointer;
+      }
+
+      .bin-item.editing {
+        background: #fff7ed;
+        border-color: var(--warning);
+      }
+
+      .list-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 220px;
+        overflow: auto;
+      }
+
+      .select-card {
+        border: 1px solid var(--border);
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      .select-card.active {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .select-card .meta {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .preview-frame {
+        width: 100%;
+        height: 260px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .preview-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      .llm-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 16px;
+      }
+
+      .llm-right {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      @media (max-width: 900px) {
+        .llm-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        padding: 8px;
+        font-family: "Cascadia Code", "Fira Code", monospace;
+        font-size: 0.85rem;
+      }
+
+      textarea.readonly {
+        min-height: 120px;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-family: inherit;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+
+      .modal {
+        background: #fff;
+        border-radius: 10px;
+        padding: 16px;
+        width: min(720px, 92vw);
+        max-height: 90vh;
+        overflow: auto;
+      }
+
+      .modal .actions {
+        justify-content: flex-end;
+        margin-top: 12px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .fullscreen-overlay {
+        position: fixed;
+        inset: 0;
+        background: #0f172a;
+        color: #fff;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .fullscreen-toolbar {
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #111827;
+      }
+
+      .fullscreen-overlay iframe {
+        flex: 1;
+        border: none;
+        background: #fff;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+
+      .scroll-panel {
+        max-height: 320px;
+        overflow: auto;
+      }
+
+      .small {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="sorter">Sorter</button>
+        <button class="tab-btn" data-tab="llm">LLM</button>
+        <button class="tab-btn" data-tab="save">Save/Load</button>
+      </div>
+      <div class="actions">
+        <button id="sortBinsBtn">Sort bins by size</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="tab-sorter" class="tab-panel active">
+        <div class="current-entry" id="currentEntry">Current entry: (empty)</div>
+        <div class="hint" id="queueHint">Press 0-9 or a-z to send the current entry to a bin.</div>
+
+        <div class="sorter-layout">
+          <div>
+            <div class="panel">
+              <div class="panel-header">Organiser</div>
+              <div class="row small" id="queueStats"></div>
+              <div class="row" style="margin: 10px 0;">
+                <button id="importNotesBtn">Import class notes</button>
+                <button id="saveCheckpointBtn">Save checkpoint</button>
+                <button id="prevCheckpointBtn">Prev checkpoint</button>
+                <button id="nextCheckpointBtn">Next checkpoint</button>
+                <button id="clearSelectionBtn">Clear selection</button>
+                <span class="small" id="checkpointLabel"></span>
+              </div>
+              <div class="bins-grid" id="binsGrid"></div>
+            </div>
+          </div>
+
+          <div class="side-panel">
+            <div class="panel">
+              <div class="panel-header">Skeleton templates</div>
+              <div class="list-stack" id="skeletonListSorter"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">JSON templates (click to run)</div>
+              <div class="list-stack" id="dataTemplateList"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">JSON results</div>
+              <div class="list-stack" id="dataResultList"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">Combine</div>
+              <div class="small" id="combineHint"></div>
+              <div class="row" style="margin-top:8px;">
+                <button id="combineBtn" class="primary">Combine template + JSON</button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">Preview</div>
+              <iframe
+                id="previewFrame"
+                class="preview-frame"
+                sandbox="allow-scripts allow-forms"
+                title="Exercise preview"
+              ></iframe>
+              <div class="preview-actions">
+                <button id="downloadHtmlBtn">Download HTML</button>
+                <button id="fullscreenPreviewBtn">Full-screen</button>
+                <button id="popoutPreviewBtn">Popout</button>
+              </div>
+              <div class="small" id="previewNote"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-llm" class="tab-panel">
+        <div class="llm-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <span>LLM Templates</span>
+              <div class="row">
+                <button id="openSkeletonModalBtn" class="primary">New skeleton</button>
+                <button id="openDataModalBtn">New JSON template</button>
+              </div>
+            </div>
+            <div class="field">
+              <label class="small">Skeleton templates</label>
+              <div class="list-stack" id="skeletonListLlm"></div>
+            </div>
+            <div class="field">
+              <label class="small">JSON templates</label>
+              <div class="list-stack" id="dataTemplateListLlm"></div>
+            </div>
+          </div>
+          <div class="llm-right">
+            <div class="panel">
+              <div class="panel-header">
+                <span>LLM Settings</span>
+                <button id="refreshModelsBtn">Refresh models</button>
+              </div>
+              <div class="field">
+                <label class="small" for="llmModelSelect">Model</label>
+                <select id="llmModelSelect"></select>
+                <div class="small" id="modelCacheNote"></div>
+              </div>
+              <div class="field">
+                <label class="small" for="llmMaxTokensInput">Max output tokens</label>
+                <input id="llmMaxTokensInput" type="number" min="1" step="1" />
+              </div>
+              <div class="field">
+                <label class="small" for="llmReasoningSelect">Reasoning effort</label>
+                <select id="llmReasoningSelect">
+                  <option value="off">Off</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="small" for="llmTimeoutConnect">Connect timeout (seconds)</label>
+                <input id="llmTimeoutConnect" type="number" min="1" step="1" />
+              </div>
+              <div class="field">
+                <label class="small" for="llmTimeoutRead">Read timeout (seconds)</label>
+                <input id="llmTimeoutRead" type="number" min="1" step="1" />
+              </div>
+            </div>
+            <div class="panel scroll-panel">
+              <div class="panel-header">Details</div>
+              <div id="templateDetails"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-save" class="tab-panel">
+        <div class="panel">
+          <div class="panel-header">Save / Load</div>
+          <div class="row" style="margin-bottom: 8px;">
+            <button id="exportStateBtn">Export state</button>
+            <button id="copyStateBtn">Copy JSON</button>
+            <button id="downloadStateBtn">Download JSON</button>
+            <button id="loadStateBtn">Load state from JSON</button>
+            <button id="openImportModalBtn">Import (lines or JSON)</button>
+          </div>
+          <textarea id="stateTextarea" placeholder="State JSON will appear here..."></textarea>
+        </div>
+      </section>
+    </main>
+
+    <div id="skeletonModal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>Skeleton template</h3>
+        <div class="field">
+          <label class="small">Name</label>
+          <input type="text" id="skeletonNameInput" />
+        </div>
+        <div class="field">
+          <label class="small">Prompt (editable)</label>
+          <textarea id="skeletonPromptInput"></textarea>
+        </div>
+        <div class="actions">
+          <button id="closeSkeletonModalBtn" class="ghost">Close</button>
+          <button id="saveSkeletonDraftBtn">Save draft</button>
+          <button id="sendSkeletonBtn" class="primary">Generate skeleton</button>
+        </div>
+        <div class="small" id="skeletonStatus"></div>
+      </div>
+    </div>
+
+    <div id="dataModal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>JSON template</h3>
+        <div class="field">
+          <label class="small">Name</label>
+          <input type="text" id="dataNameInput" />
+        </div>
+        <div class="field">
+          <label class="small">Prompt (editable)</label>
+          <textarea id="dataPromptInput"></textarea>
+        </div>
+        <div class="actions">
+          <button id="closeDataModalBtn" class="ghost">Close</button>
+          <button id="saveDataDraftBtn">Save draft</button>
+          <button id="saveDataTemplateBtn" class="primary">Save JSON template</button>
+        </div>
+        <div class="small" id="dataStatus"></div>
+      </div>
+    </div>
+
+    <div id="jsonResultModal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>JSON Result</h3>
+        <textarea id="jsonResultTextarea" class="readonly" readonly></textarea>
+        <div class="actions">
+          <button id="closeJsonResultBtn" class="primary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="importModal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>Import</h3>
+        <div class="row" style="margin-bottom: 8px;">
+          <label class="small">
+            <input type="radio" name="importMode" value="lines" checked /> Lines → queue
+          </label>
+          <label class="small">
+            <input type="radio" name="importMode" value="state" /> Full state JSON
+          </label>
+        </div>
+        <textarea id="importTextarea" placeholder="Paste lines or JSON here..."></textarea>
+        <div class="actions">
+          <button id="cancelImportBtn" class="ghost">Cancel</button>
+          <button id="confirmImportBtn" class="primary">Import</button>
+        </div>
+        <div class="small">Lines mode replaces queue and clears bins.</div>
+      </div>
+    </div>
+
+    <div id="fullscreenOverlay" class="fullscreen-overlay hidden">
+      <div class="fullscreen-toolbar">
+        <span>Preview</span>
+        <button id="closeFullscreenBtn">Close</button>
+      </div>
+      <iframe
+        id="fullscreenFrame"
+        sandbox="allow-scripts allow-forms"
+        title="Fullscreen preview"
+      ></iframe>
+    </div>
+
+    <script type="module" src="logic.js"></script>
+    <script type="module" src="ui.js"></script>
+  </body>
+</html>
