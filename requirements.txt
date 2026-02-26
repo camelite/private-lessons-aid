@@ -1,0 +1,5 @@
+Flask
+gunicorn
+requests
+certifi
+urllib3
