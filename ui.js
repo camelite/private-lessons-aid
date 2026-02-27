@@ -33,6 +33,7 @@ import {
   updateModelCache,
   setLlmDraft,
   mergeTemplateInstructions,
+  buildSkeletonPrompt,
   sanitizeTemplateName,
   updateTemplateName,
   updateDataTemplateName,
@@ -72,6 +73,9 @@ const elements = {
   skeletonModal: $("skeletonModal"),
   skeletonNameInput: $("skeletonNameInput"),
   skeletonPromptInput: $("skeletonPromptInput"),
+  skeletonIncludeExampleCheckbox: $("skeletonIncludeExampleCheckbox"),
+  skeletonExampleResultSelect: $("skeletonExampleResultSelect"),
+  skeletonCompiledPrompt: $("skeletonCompiledPrompt"),
   closeSkeletonModalBtn: $("closeSkeletonModalBtn"),
   saveSkeletonDraftBtn: $("saveSkeletonDraftBtn"),
   sendSkeletonBtn: $("sendSkeletonBtn"),
@@ -107,6 +111,41 @@ const elements = {
 
 const openModal = (modal) => modal.classList.remove("hidden");
 const closeModal = (modal) => modal.classList.add("hidden");
+
+const getSuccessfulDataResults = () =>
+  state.dataResults.filter((result) => result.status === "success");
+
+const renderSkeletonExampleOptions = () => {
+  const successResults = getSuccessfulDataResults();
+  const options = ['<option value="">(None)</option>'];
+  successResults.forEach((result) => {
+    options.push(
+      `<option value="${result.id}">${result.templateName} • ${new Date(
+        result.createdAt
+      ).toLocaleString()}</option>`
+    );
+  });
+  elements.skeletonExampleResultSelect.innerHTML = options.join("");
+
+  const draftId = state.llmDrafts.skeleton?.exampleDataResultId || "";
+  const exists = successResults.some((result) => result.id === draftId);
+  elements.skeletonExampleResultSelect.value = exists ? draftId : "";
+  if (!exists && draftId) {
+    setLlmDraft("skeleton", { exampleDataResultId: null });
+  }
+};
+
+const updateSkeletonCompiledPromptView = () => {
+  const basePrompt = elements.skeletonPromptInput.value || "";
+  const includeExample = Boolean(elements.skeletonIncludeExampleCheckbox.checked);
+  const selectedId = elements.skeletonExampleResultSelect.value || null;
+  const exampleResult = includeExample
+    ? state.dataResults.find((result) => result.id === selectedId && result.status === "success")
+    : null;
+  const compiledPrompt = buildSkeletonPrompt({ basePrompt, exampleResult });
+  elements.skeletonCompiledPrompt.value = compiledPrompt;
+  return { compiledPrompt, selectedId, includeExample };
+};
 
 const renderCurrentEntry = () => {
   const current = state.queue[0]?.text || "(done)";
@@ -335,6 +374,10 @@ const renderTemplateDetails = () => {
         <div class="small">Created: ${new Date(template.createdAt).toLocaleString()}</div>
         <h4>Prompt</h4>
         <textarea class="readonly" readonly>${template.prompt}</textarea>
+        <h4>Compiled Prompt</h4>
+        <textarea class="readonly" readonly>${template.compiledPrompt || "(not stored)"}</textarea>
+        <h4>Source JSON Result ID</h4>
+        <textarea class="readonly" readonly>${template.sourceDataResultId || "(none)"}</textarea>
         <h4>Instructions</h4>
         <textarea class="readonly" readonly>${template.instructions}</textarea>
         <h4>Skeleton HTML</h4>
@@ -511,13 +554,15 @@ const sendSkeletonRequest = async () => {
   const name = elements.skeletonNameInput.value.trim();
   const prompt = elements.skeletonPromptInput.value.trim();
   if (!prompt) return;
+
+  const { compiledPrompt, selectedId, includeExample } = updateSkeletonCompiledPromptView();
   elements.skeletonStatus.textContent = "Sending request...";
   try {
     const response = await fetch("/api/llm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt,
+        prompt: compiledPrompt,
         settings: state.llmSettings,
       }),
     });
@@ -527,6 +572,8 @@ const sendSkeletonRequest = async () => {
     addSkeletonTemplate({
       name: name || sanitizeTemplateName(prompt),
       prompt,
+      compiledPrompt,
+      sourceDataResultId: includeExample ? selectedId : null,
       htmlSkeleton: merged.skeleton,
       instructions: merged.instructions,
     });
@@ -542,6 +589,8 @@ const saveSkeletonDraft = () => {
   setLlmDraft("skeleton", {
     name: elements.skeletonNameInput.value,
     prompt: elements.skeletonPromptInput.value,
+    includeExampleData: Boolean(elements.skeletonIncludeExampleCheckbox.checked),
+    exampleDataResultId: elements.skeletonExampleResultSelect.value || null,
   });
   saveToLocal();
   elements.skeletonStatus.textContent = "Draft saved.";
@@ -572,7 +621,13 @@ const saveDataTemplate = () => {
 const openSkeletonModal = () => {
   elements.skeletonNameInput.value = state.llmDrafts.skeleton?.name || "";
   elements.skeletonPromptInput.value = state.llmDrafts.skeleton?.prompt || "";
+  renderSkeletonExampleOptions();
+  elements.skeletonIncludeExampleCheckbox.checked =
+    Boolean(state.llmDrafts.skeleton?.includeExampleData) &&
+    Boolean(elements.skeletonExampleResultSelect.value);
+  elements.skeletonExampleResultSelect.disabled = !elements.skeletonIncludeExampleCheckbox.checked;
   elements.skeletonStatus.textContent = "";
+  updateSkeletonCompiledPromptView();
   openModal(elements.skeletonModal);
 };
 
@@ -781,6 +836,12 @@ const initEvents = () => {
     closeModal(elements.dataModal)
   );
   elements.saveSkeletonDraftBtn.addEventListener("click", saveSkeletonDraft);
+  elements.skeletonPromptInput.addEventListener("input", updateSkeletonCompiledPromptView);
+  elements.skeletonIncludeExampleCheckbox.addEventListener("change", () => {
+    elements.skeletonExampleResultSelect.disabled = !elements.skeletonIncludeExampleCheckbox.checked;
+    updateSkeletonCompiledPromptView();
+  });
+  elements.skeletonExampleResultSelect.addEventListener("change", updateSkeletonCompiledPromptView);
   elements.saveDataDraftBtn.addEventListener("click", saveDataDraft);
   elements.sendSkeletonBtn.addEventListener("click", sendSkeletonRequest);
   elements.saveDataTemplateBtn.addEventListener("click", saveDataTemplate);
