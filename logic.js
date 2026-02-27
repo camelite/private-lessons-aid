@@ -43,6 +43,8 @@ const defaultState = () => ({
     skeleton: {
       name: "Skeleton template",
       prompt: DEFAULT_SKELETON_PROMPT,
+      includeExampleData: false,
+      exampleDataResultId: null,
     },
     data: {
       name: "Vocab definitions",
@@ -171,11 +173,20 @@ export const getSelectedBinsData = () => {
   return { binKeys, items, binsMap };
 };
 
-export const addSkeletonTemplate = ({ name, prompt, htmlSkeleton, instructions }) => {
+export const addSkeletonTemplate = ({
+  name,
+  prompt,
+  compiledPrompt = "",
+  sourceDataResultId = null,
+  htmlSkeleton,
+  instructions,
+}) => {
   const template = {
     id: createId(),
     name,
     prompt,
+    compiledPrompt,
+    sourceDataResultId,
     htmlSkeleton,
     instructions,
     createdAt: nowIso(),
@@ -215,6 +226,7 @@ export const addDataResult = ({ templateId, templateName, binKeys, items, binsMa
     binKeys,
     items,
     binsMap,
+    requestPrompt: "",
     status: "pending",
     responseText: "",
     responseJson: null,
@@ -400,6 +412,48 @@ export const mergeTemplateInstructions = (htmlText) => {
     skeleton: skeleton.trim(),
     instructions: instructions.trim() || "",
   };
+};
+
+export const buildSkeletonPrompt = ({ basePrompt, exampleResult = null }) => {
+  const trimmedBase = (basePrompt || "").trim();
+  const sections = [
+    [
+      "## SYSTEM / CONTRACT",
+      [
+        "Return only one complete, self-contained HTML document.",
+        "Use only vanilla HTML/CSS/JS (no external dependencies).",
+        "Include exactly one <!--DATA--> placeholder for injected window.STUDENT_DATA.",
+        "After the HTML, include a <!--INSTRUCTIONS--> section describing how data is consumed.",
+      ].join("\n"),
+    ],
+    ["## TASK", trimmedBase || "(No task prompt provided.)"],
+  ];
+
+  if (exampleResult) {
+    const dataPayload = exampleResult.responseJson || {
+      rawText: exampleResult.responseText || "",
+    };
+    sections.push([
+      "## DATA EXAMPLE",
+      [
+        `Template: ${exampleResult.templateName}`,
+        `Bins: ${(exampleResult.binKeys || []).join(", ") || "(none)"}`,
+        "Example JSON:",
+        JSON.stringify(dataPayload, null, 2),
+      ].join("\n"),
+    ]);
+  }
+
+  sections.push([
+    "## OUTPUT RULES",
+    [
+      "Output HTML first, then <!--INSTRUCTIONS--> text.",
+      "Do not wrap output in markdown code fences.",
+      "Ensure the final HTML can run directly in an iframe.",
+    ].join("\n"),
+  ]);
+
+  return sections.map(([title, body]) => `${title}\n${body}`).join("\n\n");
 };
 
 export const updateTemplateName = (templateId, name) => {
