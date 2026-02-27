@@ -507,6 +507,19 @@
           <label class="small">Prompt (editable)</label>
           <textarea id="skeletonPromptInput"></textarea>
         </div>
+        <div class="field">
+          <label class="small">
+            <input type="checkbox" id="skeletonIncludeExampleCheckbox" /> Include JSON result as example
+          </label>
+        </div>
+        <div class="field">
+          <label class="small" for="skeletonExampleResultSelect">Example JSON result</label>
+          <select id="skeletonExampleResultSelect"></select>
+        </div>
+        <div class="field">
+          <label class="small">Compiled prompt (full request sent to LLM)</label>
+          <textarea id="skeletonCompiledPrompt" class="readonly" readonly></textarea>
+        </div>
         <div class="actions">
           <button id="closeSkeletonModalBtn" class="ghost">Close</button>
           <button id="saveSkeletonDraftBtn">Save draft</button>
