@@ -38,7 +38,7 @@ def llm():
     if not api_key:
         return jsonify({"error": "Missing OPENAI_API_KEY"}), 400
 
-    model = settings.get("model") or "gpt-4.1-mini"
+    model = settings.get("model") or "gpt-5.2-2025-12-11"
     max_output_tokens = int(settings.get("maxOutputTokens") or 20000)
     reasoning_effort = settings.get("reasoningEffort") or "off"
     timeout_connect = int(settings.get("timeoutConnect") or 10)
@@ -140,7 +140,7 @@ def models():
 def call_with_curl(api_key, request_body, timeout_read):
     payload = json.dumps(request_body)
     command = [
-        "curl.exe",
+        "curl",
         "-sS",
         "-X",
         "POST",
@@ -162,7 +162,7 @@ def call_with_curl(api_key, request_body, timeout_read):
 
 def call_with_curl_models(api_key, timeout_read):
     command = [
-        "curl.exe",
+        "curl",
         "-sS",
         "-X",
         "GET",
