@@ -1,16 +1,8 @@
 const STORAGE_KEY = "esl-designer-state";
 
-const DEFAULT_SKELETON_PROMPT = `Create a single, self-contained HTML document for an ESL exercise.
-Requirements:
-- Use only vanilla HTML/CSS/JS.
-- Include a <!--DATA--> placeholder where the app will inject window.STUDENT_DATA.
-- After the HTML, append a <!--INSTRUCTIONS--> section that explains how the data is used.
-Return only the HTML document.`;
+const DEFAULT_SKELETON_PROMPT = "";
 
-const DEFAULT_DATA_PROMPT = `Return JSON only.
-Produce an array of objects: [{"term": "...", "definition": "..."}]
-Items (JSON): {{itemsJson}}
-Bins map (JSON): {{binsMap}}`;
+const DEFAULT_DATA_PROMPT = "";
 
 const createId = () =>
   `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -33,7 +25,7 @@ const defaultState = () => ({
     dataResultId: null,
   },
   llmSettings: {
-    model: "gpt-4.1-mini",
+    model: "gpt-5.2-2025-12-11",
     maxOutputTokens: 20000,
     reasoningEffort: "off",
     timeoutConnect: 10,

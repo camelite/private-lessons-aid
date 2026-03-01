@@ -112,6 +112,14 @@ const elements = {
 const openModal = (modal) => modal.classList.remove("hidden");
 const closeModal = (modal) => modal.classList.add("hidden");
 
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 const getSuccessfulDataResults = () =>
   state.dataResults.filter((result) => result.status === "success");
 
@@ -268,7 +276,7 @@ const renderSkeletonLists = () => {
       const card = document.createElement("div");
       card.className = "select-card";
       if (state.selectedSkeletonId === template.id) card.classList.add("active");
-      card.innerHTML = `<strong>${template.name}</strong><div class="meta">${new Date(
+      card.innerHTML = `<strong>${escapeHtml(template.name)}</strong><div class="meta">${new Date(
         template.createdAt
       ).toLocaleString()}</div>`;
       card.addEventListener("click", () => {
@@ -294,7 +302,7 @@ const renderDataTemplates = () => {
     state.dataTemplates.forEach((template) => {
       const card = document.createElement("div");
       card.className = "select-card";
-      card.innerHTML = `<strong>${template.name}</strong><div class="meta">${new Date(
+      card.innerHTML = `<strong>${escapeHtml(template.name)}</strong><div class="meta">${new Date(
         template.createdAt
       ).toLocaleString()}</div>`;
       if (allowRun) {
@@ -342,7 +350,7 @@ const renderDataResults = () => {
     card.className = "select-card";
     if (state.selectedDataResultId === result.id) card.classList.add("active");
     const status = result.status === "pending" ? "⏳" : result.status === "error" ? "⚠️" : "✅";
-    card.innerHTML = `<strong>${status} ${result.templateName}</strong>
+    card.innerHTML = `<strong>${status} ${escapeHtml(result.templateName)}</strong>
       <div class="meta">${result.binKeys.join(", ") || "(no bins)"} • ${new Date(
         result.createdAt
       ).toLocaleString()}</div>`;
@@ -384,19 +392,19 @@ const renderTemplateDetails = () => {
       content = `
         <div class="field">
           <label class="small">Name</label>
-          <input type="text" id="detailSkeletonName" value="${template.name}" />
+          <input type="text" id="detailSkeletonName" value="${escapeHtml(template.name)}" />
         </div>
         <div class="small">Created: ${new Date(template.createdAt).toLocaleString()}</div>
         <h4>Prompt</h4>
-        <textarea class="readonly" readonly>${template.prompt}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.prompt)}</textarea>
         <h4>Compiled Prompt</h4>
-        <textarea class="readonly" readonly>${template.compiledPrompt || "(not stored)"}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.compiledPrompt || "(not stored)")}</textarea>
         <h4>Source JSON Result ID</h4>
-        <textarea class="readonly" readonly>${template.sourceDataResultId || "(none)"}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.sourceDataResultId || "(none)")}</textarea>
         <h4>Instructions</h4>
-        <textarea class="readonly" readonly>${template.instructions}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.instructions)}</textarea>
         <h4>Skeleton HTML</h4>
-        <textarea class="readonly" readonly>${template.htmlSkeleton}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.htmlSkeleton)}</textarea>
       `;
     }
   }
@@ -406,11 +414,11 @@ const renderTemplateDetails = () => {
       content = `
         <div class="field">
           <label class="small">Name</label>
-          <input type="text" id="detailDataName" value="${template.name}" />
+          <input type="text" id="detailDataName" value="${escapeHtml(template.name)}" />
         </div>
         <div class="small">Created: ${new Date(template.createdAt).toLocaleString()}</div>
         <h4>Prompt</h4>
-        <textarea class="readonly" readonly>${template.prompt}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.prompt)}</textarea>
       `;
     }
   }
@@ -499,7 +507,7 @@ const readLlmSettings = () => {
   const timeoutConnect = Number(elements.llmTimeoutConnect.value) || 10;
   const timeoutRead = Number(elements.llmTimeoutRead.value) || 180;
   state.llmSettings = {
-    model: elements.llmModelSelect.value || "gpt-4.1-mini",
+    model: elements.llmModelSelect.value || "gpt-5.2-2025-12-11",
     maxOutputTokens: Math.max(1, Math.floor(maxTokens)),
     reasoningEffort: elements.llmReasoningSelect.value || "off",
     timeoutConnect: Math.max(1, Math.floor(timeoutConnect)),
