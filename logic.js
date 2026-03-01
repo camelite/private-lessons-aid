@@ -226,6 +226,7 @@ export const addDataResult = ({ templateId, templateName, binKeys, items, binsMa
     binKeys,
     items,
     binsMap,
+    requestPrompt: "",
     status: "pending",
     responseText: "",
     responseJson: null,

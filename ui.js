@@ -314,6 +314,23 @@ const renderDataTemplates = () => {
   renderList(elements.dataTemplateListLlm, false);
 };
 
+const buildDataResultDebugText = (result) => {
+  const sections = [
+    `Status: ${result.status}`,
+    result.error ? `Error: ${result.error}` : null,
+    "",
+    "--- Request Prompt ---",
+    result.requestPrompt || "(not stored)",
+    "",
+    "--- Response Text ---",
+    result.responseText || "(empty)",
+    "",
+    "--- Parsed JSON ---",
+    result.responseJson ? JSON.stringify(result.responseJson, null, 2) : "(none)",
+  ].filter((part) => part !== null);
+  return sections.join("\n");
+};
+
 const renderDataResults = () => {
   elements.dataResultList.innerHTML = "";
   if (!state.dataResults.length) {
@@ -333,10 +350,8 @@ const renderDataResults = () => {
       selectDataResult(result.id);
       saveToLocal();
       render();
-      if (result.status === "success") {
-        elements.jsonResultTextarea.value = JSON.stringify(result.responseJson, null, 2);
-        openModal(elements.jsonResultModal);
-      }
+      elements.jsonResultTextarea.value = buildDataResultDebugText(result);
+      openModal(elements.jsonResultModal);
     });
     elements.dataResultList.appendChild(card);
   });
@@ -504,6 +519,7 @@ const runDataTemplate = async (template) => {
     alert("Select at least one bin.");
     return;
   }
+  const prompt = composeDataPrompt(template.prompt, items, binsMap);
   const result = addDataResult({
     templateId: template.id,
     templateName: template.name,
@@ -511,10 +527,9 @@ const runDataTemplate = async (template) => {
     items,
     binsMap,
   });
+  updateDataResult(result.id, { requestPrompt: prompt });
   saveToLocal();
   render();
-
-  const prompt = composeDataPrompt(template.prompt, items, binsMap);
   try {
     const response = await fetch("/api/llm", {
       method: "POST",
@@ -536,7 +551,9 @@ const runDataTemplate = async (template) => {
       status: parsed ? "success" : "error",
       responseText: data.text || "",
       responseJson: parsed,
-      error: parsed ? null : "Invalid JSON returned",
+      error: parsed
+        ? null
+        : `Invalid JSON returned. Response starts with: ${(data.text || "").slice(0, 280)}`,
     });
   } catch (error) {
     updateDataResult(result.id, {
