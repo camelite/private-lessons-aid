@@ -112,6 +112,25 @@ const elements = {
 const openModal = (modal) => modal.classList.remove("hidden");
 const closeModal = (modal) => modal.classList.add("hidden");
 
+const parseJsonResponse = async (response, fallbackMessage) => {
+  const raw = await response.text();
+  let data = null;
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    const snippet = raw.slice(0, 300).replace(/\s+/g, " ").trim();
+    throw new Error(
+      `${fallbackMessage}. Server returned non-JSON (status ${response.status})${
+        snippet ? `: ${snippet}` : ""
+      }`
+    );
+  }
+  if (!response.ok) {
+    throw new Error(data.error || fallbackMessage);
+  }
+  return data;
+};
+
 const escapeHtml = (value) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -547,8 +566,7 @@ const runDataTemplate = async (template) => {
         settings: state.llmSettings,
       }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed");
+    const data = await parseJsonResponse(response, "Request failed");
     let parsed = null;
     try {
       parsed = JSON.parse(data.text || "");
@@ -591,8 +609,7 @@ const sendSkeletonRequest = async () => {
         settings: state.llmSettings,
       }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed");
+    const data = await parseJsonResponse(response, "Request failed");
     const merged = mergeTemplateInstructions(data.text || "");
     addSkeletonTemplate({
       name: name || sanitizeTemplateName(prompt),
@@ -792,8 +809,7 @@ const fetchModels = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings: state.llmSettings }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Failed to fetch models");
+    const data = await parseJsonResponse(response, "Failed to fetch models");
     updateModelCache(data.models || []);
     saveToLocal();
     render();

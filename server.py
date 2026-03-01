@@ -82,7 +82,10 @@ def llm():
         response = None
 
     if response is None:
-        response = call_with_curl(api_key, request_body, timeout_read)
+        try:
+            response = call_with_curl(api_key, request_body, timeout_read)
+        except Exception as error:
+            return jsonify({"error": f"Fallback request failed: {error}"}), 502
 
     if isinstance(response, dict):
         data = response
@@ -127,7 +130,10 @@ def models():
         response = None
 
     if response is None:
-        data = call_with_curl_models(api_key, timeout_read)
+        try:
+            data = call_with_curl_models(api_key, timeout_read)
+        except Exception as error:
+            return jsonify({"error": f"Fallback models request failed: {error}"}), 502
     else:
         if response.status_code >= 400:
             return jsonify({"error": response.text}), response.status_code
