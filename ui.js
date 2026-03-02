@@ -33,6 +33,7 @@ import {
   updateModelCache,
   setLlmDraft,
   mergeTemplateInstructions,
+  buildSkeletonPrompt,
   sanitizeTemplateName,
   updateTemplateName,
   updateDataTemplateName,
@@ -72,6 +73,17 @@ const elements = {
   skeletonModal: $("skeletonModal"),
   skeletonNameInput: $("skeletonNameInput"),
   skeletonPromptInput: $("skeletonPromptInput"),
+  skeletonIncludeExampleCheckbox: $("skeletonIncludeExampleCheckbox"),
+  skeletonExampleResultSelect: $("skeletonExampleResultSelect"),
+  skeletonCompiledPrompt: $("skeletonCompiledPrompt"),
+  skeletonSystemPromptInput: $("skeletonSystemPromptInput"),
+  skeletonModelSelect: $("skeletonModelSelect"),
+  refreshModelsSkeletonBtn: $("refreshModelsSkeletonBtn"),
+  skeletonModelCacheNote: $("skeletonModelCacheNote"),
+  skeletonMaxTokensInput: $("skeletonMaxTokensInput"),
+  skeletonReasoningSelect: $("skeletonReasoningSelect"),
+  skeletonTimeoutConnect: $("skeletonTimeoutConnect"),
+  skeletonTimeoutRead: $("skeletonTimeoutRead"),
   closeSkeletonModalBtn: $("closeSkeletonModalBtn"),
   saveSkeletonDraftBtn: $("saveSkeletonDraftBtn"),
   sendSkeletonBtn: $("sendSkeletonBtn"),
@@ -79,20 +91,24 @@ const elements = {
   dataModal: $("dataModal"),
   dataNameInput: $("dataNameInput"),
   dataPromptInput: $("dataPromptInput"),
+  dataSystemPromptInput: $("dataSystemPromptInput"),
+  dataSelectedBinsPreview: $("dataSelectedBinsPreview"),
+  dataCompiledPrompt: $("dataCompiledPrompt"),
+  runDataTemplateBtn: $("runDataTemplateBtn"),
   closeDataModalBtn: $("closeDataModalBtn"),
   saveDataDraftBtn: $("saveDataDraftBtn"),
   saveDataTemplateBtn: $("saveDataTemplateBtn"),
   dataStatus: $("dataStatus"),
+  dataModelSelect: $("dataModelSelect"),
+  refreshModelsDataBtn: $("refreshModelsDataBtn"),
+  dataModelCacheNote: $("dataModelCacheNote"),
+  dataMaxTokensInput: $("dataMaxTokensInput"),
+  dataReasoningSelect: $("dataReasoningSelect"),
+  dataTimeoutConnect: $("dataTimeoutConnect"),
+  dataTimeoutRead: $("dataTimeoutRead"),
   jsonResultModal: $("jsonResultModal"),
   jsonResultTextarea: $("jsonResultTextarea"),
   closeJsonResultBtn: $("closeJsonResultBtn"),
-  llmModelSelect: $("llmModelSelect"),
-  refreshModelsBtn: $("refreshModelsBtn"),
-  modelCacheNote: $("modelCacheNote"),
-  llmMaxTokensInput: $("llmMaxTokensInput"),
-  llmReasoningSelect: $("llmReasoningSelect"),
-  llmTimeoutConnect: $("llmTimeoutConnect"),
-  llmTimeoutRead: $("llmTimeoutRead"),
   exportStateBtn: $("exportStateBtn"),
   copyStateBtn: $("copyStateBtn"),
   downloadStateBtn: $("downloadStateBtn"),
@@ -107,6 +123,158 @@ const elements = {
 
 const openModal = (modal) => modal.classList.remove("hidden");
 const closeModal = (modal) => modal.classList.add("hidden");
+
+const parseJsonResponse = async (response, fallbackMessage) => {
+  const raw = await response.text();
+  let data = null;
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    const snippet = raw.slice(0, 300).replace(/\s+/g, " ").trim();
+    throw new Error(
+      `${fallbackMessage}. Server returned non-JSON (status ${response.status})${
+        snippet ? `: ${snippet}` : ""
+      }`
+    );
+  }
+  if (!response.ok) {
+    throw new Error(data.error || fallbackMessage);
+  }
+  return data;
+};
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const getSuccessfulDataResults = () =>
+  state.dataResults.filter((result) => result.status === "success");
+
+const renderSkeletonExampleOptions = () => {
+  const successResults = getSuccessfulDataResults();
+  const options = ['<option value="">(None)</option>'];
+  successResults.forEach((result) => {
+    options.push(
+      `<option value="${result.id}">${result.templateName} • ${new Date(
+        result.createdAt
+      ).toLocaleString()}</option>`
+    );
+  });
+  elements.skeletonExampleResultSelect.innerHTML = options.join("");
+
+  const draftId = state.llmDrafts.skeleton?.exampleDataResultId || "";
+  const exists = successResults.some((result) => result.id === draftId);
+  elements.skeletonExampleResultSelect.value = exists ? draftId : "";
+  if (!exists && draftId) {
+    setLlmDraft("skeleton", { exampleDataResultId: null });
+  }
+};
+
+const updateSkeletonCompiledPromptView = () => {
+  const basePrompt = elements.skeletonPromptInput.value || "";
+  const systemPrompt = elements.skeletonSystemPromptInput.value || "";
+  const includeExample = Boolean(elements.skeletonIncludeExampleCheckbox.checked);
+  const selectedId = elements.skeletonExampleResultSelect.value || null;
+  const exampleResult = includeExample
+    ? state.dataResults.find((result) => result.id === selectedId && result.status === "success")
+    : null;
+  const compiledPrompt = buildSkeletonPrompt({ basePrompt, systemPrompt, exampleResult });
+  elements.skeletonCompiledPrompt.value = compiledPrompt;
+  return { compiledPrompt, selectedId, includeExample };
+};
+
+const buildDataCompiledPrompt = ({ personalPrompt, systemPrompt, items, binsMap }) => {
+  const sections = [
+    ["## SYSTEM / CONTRACT", (systemPrompt || "").trim() || "(No system instructions provided.)"],
+    ["## TASK", (personalPrompt || "").trim() || "(No personal instructions provided.)"],
+    ["## SELECTED ITEMS", JSON.stringify(items || [], null, 2)],
+    ["## SELECTED BINS MAP", JSON.stringify(binsMap || {}, null, 2)],
+  ];
+  return sections.map(([title, body]) => `${title}\n${body}`).join("\n\n");
+};
+
+const updateDataCompiledPromptView = () => {
+  const { binKeys, items, binsMap } = getSelectedBinsData();
+  const personalPrompt = elements.dataPromptInput.value || "";
+  const systemPrompt = elements.dataSystemPromptInput.value || "";
+  elements.dataSelectedBinsPreview.value = JSON.stringify({ binKeys, items, binsMap }, null, 2);
+  const compiledPrompt = buildDataCompiledPrompt({ personalPrompt, systemPrompt, items, binsMap });
+  elements.dataCompiledPrompt.value = compiledPrompt;
+  return { compiledPrompt, binKeys, items, binsMap };
+};
+
+const getComposerSettings = (type) => {
+  const map = type === "data"
+    ? {
+        model: elements.dataModelSelect,
+        max: elements.dataMaxTokensInput,
+        reason: elements.dataReasoningSelect,
+        connect: elements.dataTimeoutConnect,
+        read: elements.dataTimeoutRead,
+      }
+    : {
+        model: elements.skeletonModelSelect,
+        max: elements.skeletonMaxTokensInput,
+        reason: elements.skeletonReasoningSelect,
+        connect: elements.skeletonTimeoutConnect,
+        read: elements.skeletonTimeoutRead,
+      };
+  const maxTokens = Number(map.max.value) || 20000;
+  const timeoutConnect = Number(map.connect.value) || 10;
+  const timeoutRead = Number(map.read.value) || 180;
+  return {
+    model: map.model.value || "gpt-5.2-2025-12-11",
+    maxOutputTokens: Math.max(1, Math.floor(maxTokens)),
+    reasoningEffort: map.reason.value || "off",
+    timeoutConnect: Math.max(1, Math.floor(timeoutConnect)),
+    timeoutRead: Math.max(1, Math.floor(timeoutRead)),
+  };
+};
+
+const applyComposerSettings = (type, settings) => {
+  const map = type === "data"
+    ? {
+        model: elements.dataModelSelect,
+        max: elements.dataMaxTokensInput,
+        reason: elements.dataReasoningSelect,
+        connect: elements.dataTimeoutConnect,
+        read: elements.dataTimeoutRead,
+        note: elements.dataModelCacheNote,
+      }
+    : {
+        model: elements.skeletonModelSelect,
+        max: elements.skeletonMaxTokensInput,
+        reason: elements.skeletonReasoningSelect,
+        connect: elements.skeletonTimeoutConnect,
+        read: elements.skeletonTimeoutRead,
+        note: elements.skeletonModelCacheNote,
+      };
+
+  const models = state.modelCache.models || [];
+  map.model.innerHTML = "";
+  if (!models.length) {
+    map.model.innerHTML = `<option value="${settings.model}">${settings.model}</option>`;
+  } else {
+    models.forEach((m) => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      map.model.appendChild(opt);
+    });
+  }
+  map.model.value = settings.model;
+  map.max.value = settings.maxOutputTokens;
+  map.reason.value = settings.reasoningEffort || "off";
+  map.connect.value = settings.timeoutConnect;
+  map.read.value = settings.timeoutRead;
+  map.note.textContent = state.modelCache.fetchedAt
+    ? `Fetched: ${new Date(state.modelCache.fetchedAt).toLocaleString()}`
+    : "Model list not fetched yet.";
+};
 
 const renderCurrentEntry = () => {
   const current = state.queue[0]?.text || "(done)";
@@ -229,7 +397,7 @@ const renderSkeletonLists = () => {
       const card = document.createElement("div");
       card.className = "select-card";
       if (state.selectedSkeletonId === template.id) card.classList.add("active");
-      card.innerHTML = `<strong>${template.name}</strong><div class="meta">${new Date(
+      card.innerHTML = `<strong>${escapeHtml(template.name)}</strong><div class="meta">${new Date(
         template.createdAt
       ).toLocaleString()}</div>`;
       card.addEventListener("click", () => {
@@ -255,7 +423,7 @@ const renderDataTemplates = () => {
     state.dataTemplates.forEach((template) => {
       const card = document.createElement("div");
       card.className = "select-card";
-      card.innerHTML = `<strong>${template.name}</strong><div class="meta">${new Date(
+      card.innerHTML = `<strong>${escapeHtml(template.name)}</strong><div class="meta">${new Date(
         template.createdAt
       ).toLocaleString()}</div>`;
       if (allowRun) {
@@ -275,6 +443,29 @@ const renderDataTemplates = () => {
   renderList(elements.dataTemplateListLlm, false);
 };
 
+const buildDataResultDebugText = (result) => {
+  const sections = [
+    `Status: ${result.status}`,
+    result.error ? `Error: ${result.error}` : null,
+    "",
+    "--- Request Prompt ---",
+    result.requestPrompt || "(not stored)",
+    "",
+    "--- Request Model ---",
+    result.requestModel || "(unknown)",
+    "",
+    "--- Request Settings ---",
+    JSON.stringify(result.requestSettings || {}, null, 2),
+    "",
+    "--- Response Text ---",
+    result.responseText || "(empty)",
+    "",
+    "--- Parsed JSON ---",
+    result.responseJson ? JSON.stringify(result.responseJson, null, 2) : "(none)",
+  ].filter((part) => part !== null);
+  return sections.join("\n");
+};
+
 const renderDataResults = () => {
   elements.dataResultList.innerHTML = "";
   if (!state.dataResults.length) {
@@ -286,7 +477,7 @@ const renderDataResults = () => {
     card.className = "select-card";
     if (state.selectedDataResultId === result.id) card.classList.add("active");
     const status = result.status === "pending" ? "⏳" : result.status === "error" ? "⚠️" : "✅";
-    card.innerHTML = `<strong>${status} ${result.templateName}</strong>
+    card.innerHTML = `<strong>${status} ${escapeHtml(result.templateName)}</strong>
       <div class="meta">${result.binKeys.join(", ") || "(no bins)"} • ${new Date(
         result.createdAt
       ).toLocaleString()}</div>`;
@@ -294,10 +485,8 @@ const renderDataResults = () => {
       selectDataResult(result.id);
       saveToLocal();
       render();
-      if (result.status === "success") {
-        elements.jsonResultTextarea.value = JSON.stringify(result.responseJson, null, 2);
-        openModal(elements.jsonResultModal);
-      }
+      elements.jsonResultTextarea.value = buildDataResultDebugText(result);
+      openModal(elements.jsonResultModal);
     });
     elements.dataResultList.appendChild(card);
   });
@@ -330,15 +519,25 @@ const renderTemplateDetails = () => {
       content = `
         <div class="field">
           <label class="small">Name</label>
-          <input type="text" id="detailSkeletonName" value="${template.name}" />
+          <input type="text" id="detailSkeletonName" value="${escapeHtml(template.name)}" />
         </div>
         <div class="small">Created: ${new Date(template.createdAt).toLocaleString()}</div>
-        <h4>Prompt</h4>
-        <textarea class="readonly" readonly>${template.prompt}</textarea>
+        <h4>Personal Prompt</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.prompt)}</textarea>
+        <h4>System Prompt</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.systemPrompt || "")}</textarea>
+        <h4>Compiled Prompt</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.compiledPrompt || "(not stored)")}</textarea>
+        <h4>Source JSON Result ID</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.sourceDataResultId || "(none)")}</textarea>
+        <h4>Request model</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.requestModel || "(unknown)")}</textarea>
+        <h4>Request settings</h4>
+        <textarea class="readonly" readonly>${escapeHtml(JSON.stringify(template.requestSettings || {}, null, 2))}</textarea>
         <h4>Instructions</h4>
-        <textarea class="readonly" readonly>${template.instructions}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.instructions)}</textarea>
         <h4>Skeleton HTML</h4>
-        <textarea class="readonly" readonly>${template.htmlSkeleton}</textarea>
+        <textarea class="readonly" readonly>${escapeHtml(template.htmlSkeleton)}</textarea>
       `;
     }
   }
@@ -348,11 +547,13 @@ const renderTemplateDetails = () => {
       content = `
         <div class="field">
           <label class="small">Name</label>
-          <input type="text" id="detailDataName" value="${template.name}" />
+          <input type="text" id="detailDataName" value="${escapeHtml(template.name)}" />
         </div>
         <div class="small">Created: ${new Date(template.createdAt).toLocaleString()}</div>
-        <h4>Prompt</h4>
-        <textarea class="readonly" readonly>${template.prompt}</textarea>
+        <h4>Personal Prompt</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.prompt)}</textarea>
+        <h4>System Prompt</h4>
+        <textarea class="readonly" readonly>${escapeHtml(template.systemPrompt || "")}</textarea>
       `;
     }
   }
@@ -375,40 +576,6 @@ const renderTemplateDetails = () => {
   }
 };
 
-const renderModelCache = () => {
-  const models = state.modelCache.models || [];
-  elements.llmModelSelect.innerHTML = "";
-  if (!models.length) {
-    elements.llmModelSelect.innerHTML = `<option value="${state.llmSettings.model}">${
-      state.llmSettings.model
-    }</option>`;
-  } else {
-    models.forEach((model) => {
-      const option = document.createElement("option");
-      option.value = model;
-      option.textContent = model;
-      elements.llmModelSelect.appendChild(option);
-    });
-  }
-  elements.llmModelSelect.value = state.llmSettings.model;
-  elements.modelCacheNote.textContent = state.modelCache.fetchedAt
-    ? `Fetched: ${new Date(state.modelCache.fetchedAt).toLocaleString()}`
-    : "Model list not fetched yet.";
-  const supportsReasoning = /o1|o3|gpt-4o|gpt-4\.1/i.test(state.llmSettings.model);
-  elements.llmReasoningSelect.disabled = !supportsReasoning;
-  if (!supportsReasoning && state.llmSettings.reasoningEffort !== "off") {
-    state.llmSettings.reasoningEffort = "off";
-    elements.llmReasoningSelect.value = "off";
-    saveToLocal();
-  }
-};
-
-const renderLlmSettings = () => {
-  elements.llmMaxTokensInput.value = state.llmSettings.maxOutputTokens;
-  elements.llmReasoningSelect.value = state.llmSettings.reasoningEffort || "off";
-  elements.llmTimeoutConnect.value = state.llmSettings.timeoutConnect;
-  elements.llmTimeoutRead.value = state.llmSettings.timeoutRead;
-};
 
 const render = () => {
   renderCurrentEntry();
@@ -420,8 +587,6 @@ const render = () => {
   renderCombineHint();
   renderPreview();
   renderTemplateDetails();
-  renderModelCache();
-  renderLlmSettings();
 };
 
 const setTabActive = (tabId) => {
@@ -436,20 +601,6 @@ const setTabActive = (tabId) => {
   render();
 };
 
-const readLlmSettings = () => {
-  const maxTokens = Number(elements.llmMaxTokensInput.value) || 20000;
-  const timeoutConnect = Number(elements.llmTimeoutConnect.value) || 10;
-  const timeoutRead = Number(elements.llmTimeoutRead.value) || 180;
-  state.llmSettings = {
-    model: elements.llmModelSelect.value || "gpt-4.1-mini",
-    maxOutputTokens: Math.max(1, Math.floor(maxTokens)),
-    reasoningEffort: elements.llmReasoningSelect.value || "off",
-    timeoutConnect: Math.max(1, Math.floor(timeoutConnect)),
-    timeoutRead: Math.max(1, Math.floor(timeoutRead)),
-  };
-  saveToLocal();
-};
-
 const composeDataPrompt = (templatePrompt, items, binsMap) =>
   templatePrompt
     .replace("{{itemsJson}}", JSON.stringify(items, null, 2))
@@ -461,28 +612,36 @@ const runDataTemplate = async (template) => {
     alert("Select at least one bin.");
     return;
   }
+  const systemPrompt = template.systemPrompt || state.llmDrafts.data?.systemPrompt || "";
+  const prompt = buildDataCompiledPrompt({
+    personalPrompt: template.prompt || "",
+    systemPrompt,
+    items,
+    binsMap,
+  });
+  const requestSettings = getComposerSettings("data");
   const result = addDataResult({
     templateId: template.id,
     templateName: template.name,
     binKeys,
     items,
     binsMap,
+    requestModel: requestSettings.model,
+    requestSettings,
   });
+  updateDataResult(result.id, { requestPrompt: prompt });
   saveToLocal();
   render();
-
-  const prompt = composeDataPrompt(template.prompt, items, binsMap);
   try {
     const response = await fetch("/api/llm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt,
-        settings: state.llmSettings,
+        settings: requestSettings,
       }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed");
+    const data = await parseJsonResponse(response, "Request failed");
     let parsed = null;
     try {
       parsed = JSON.parse(data.text || "");
@@ -493,7 +652,9 @@ const runDataTemplate = async (template) => {
       status: parsed ? "success" : "error",
       responseText: data.text || "",
       responseJson: parsed,
-      error: parsed ? null : "Invalid JSON returned",
+      error: parsed
+        ? null
+        : `Invalid JSON returned. Response starts with: ${(data.text || "").slice(0, 280)}`,
     });
   } catch (error) {
     updateDataResult(result.id, {
@@ -510,23 +671,34 @@ const runDataTemplate = async (template) => {
 const sendSkeletonRequest = async () => {
   const name = elements.skeletonNameInput.value.trim();
   const prompt = elements.skeletonPromptInput.value.trim();
-  if (!prompt) return;
+  const systemPrompt = elements.skeletonSystemPromptInput.value.trim();
+  if (!prompt && !systemPrompt) {
+    elements.skeletonStatus.textContent = "Add personal or system instructions first.";
+    return;
+  }
+
+  const { compiledPrompt, selectedId, includeExample } = updateSkeletonCompiledPromptView();
+  const requestSettings = getComposerSettings("skeleton");
   elements.skeletonStatus.textContent = "Sending request...";
   try {
     const response = await fetch("/api/llm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt,
-        settings: state.llmSettings,
+        prompt: compiledPrompt,
+        settings: requestSettings,
       }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Request failed");
+    const data = await parseJsonResponse(response, "Request failed");
     const merged = mergeTemplateInstructions(data.text || "");
     addSkeletonTemplate({
       name: name || sanitizeTemplateName(prompt),
       prompt,
+      compiledPrompt,
+      sourceDataResultId: includeExample ? selectedId : null,
+      systemPrompt: systemPrompt || "",
+      requestModel: requestSettings.model,
+      requestSettings,
       htmlSkeleton: merged.skeleton,
       instructions: merged.instructions,
     });
@@ -542,6 +714,9 @@ const saveSkeletonDraft = () => {
   setLlmDraft("skeleton", {
     name: elements.skeletonNameInput.value,
     prompt: elements.skeletonPromptInput.value,
+    systemPrompt: elements.skeletonSystemPromptInput.value,
+    includeExampleData: Boolean(elements.skeletonIncludeExampleCheckbox.checked),
+    exampleDataResultId: elements.skeletonExampleResultSelect.value || null,
   });
   saveToLocal();
   elements.skeletonStatus.textContent = "Draft saved.";
@@ -551,6 +726,7 @@ const saveDataDraft = () => {
   setLlmDraft("data", {
     name: elements.dataNameInput.value,
     prompt: elements.dataPromptInput.value,
+    systemPrompt: elements.dataSystemPromptInput.value,
   });
   saveToLocal();
   elements.dataStatus.textContent = "Draft saved.";
@@ -559,10 +735,12 @@ const saveDataDraft = () => {
 const saveDataTemplate = () => {
   const name = elements.dataNameInput.value.trim();
   const prompt = elements.dataPromptInput.value.trim();
-  if (!prompt) return;
+  const systemPrompt = elements.dataSystemPromptInput.value.trim();
+  if (!prompt && !systemPrompt) return;
   addDataTemplate({
     name: name || sanitizeTemplateName(prompt),
     prompt,
+    systemPrompt: systemPrompt || "",
   });
   saveToLocal();
   render();
@@ -572,14 +750,25 @@ const saveDataTemplate = () => {
 const openSkeletonModal = () => {
   elements.skeletonNameInput.value = state.llmDrafts.skeleton?.name || "";
   elements.skeletonPromptInput.value = state.llmDrafts.skeleton?.prompt || "";
+  elements.skeletonSystemPromptInput.value = state.llmDrafts.skeleton?.systemPrompt || "";
+  renderSkeletonExampleOptions();
+  elements.skeletonIncludeExampleCheckbox.checked =
+    Boolean(state.llmDrafts.skeleton?.includeExampleData) &&
+    Boolean(elements.skeletonExampleResultSelect.value);
+  elements.skeletonExampleResultSelect.disabled = !elements.skeletonIncludeExampleCheckbox.checked;
   elements.skeletonStatus.textContent = "";
+  applyComposerSettings("skeleton", state.llmSettings);
+  updateSkeletonCompiledPromptView();
   openModal(elements.skeletonModal);
 };
 
 const openDataModal = () => {
   elements.dataNameInput.value = state.llmDrafts.data?.name || "";
   elements.dataPromptInput.value = state.llmDrafts.data?.prompt || "";
+  elements.dataSystemPromptInput.value = state.llmDrafts.data?.systemPrompt || "";
   elements.dataStatus.textContent = "";
+  applyComposerSettings("data", state.llmSettings);
+  updateDataCompiledPromptView();
   openModal(elements.dataModal);
 };
 
@@ -712,9 +901,10 @@ const fetchModels = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings: state.llmSettings }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Failed to fetch models");
+    const data = await parseJsonResponse(response, "Failed to fetch models");
     updateModelCache(data.models || []);
+    applyComposerSettings("skeleton", state.llmSettings);
+    applyComposerSettings("data", state.llmSettings);
     saveToLocal();
     render();
   } catch (error) {
@@ -781,24 +971,56 @@ const initEvents = () => {
     closeModal(elements.dataModal)
   );
   elements.saveSkeletonDraftBtn.addEventListener("click", saveSkeletonDraft);
+  elements.skeletonPromptInput.addEventListener("input", updateSkeletonCompiledPromptView);
+  elements.skeletonSystemPromptInput.addEventListener("input", updateSkeletonCompiledPromptView);
+  elements.skeletonIncludeExampleCheckbox.addEventListener("change", () => {
+    elements.skeletonExampleResultSelect.disabled = !elements.skeletonIncludeExampleCheckbox.checked;
+    updateSkeletonCompiledPromptView();
+  });
+  elements.skeletonExampleResultSelect.addEventListener("change", updateSkeletonCompiledPromptView);
   elements.saveDataDraftBtn.addEventListener("click", saveDataDraft);
+  elements.dataPromptInput.addEventListener("input", updateDataCompiledPromptView);
+  elements.dataSystemPromptInput.addEventListener("input", updateDataCompiledPromptView);
+  elements.runDataTemplateBtn.addEventListener("click", () => {
+    const name = elements.dataNameInput.value.trim();
+    const prompt = elements.dataPromptInput.value.trim();
+    if (!prompt && !elements.dataSystemPromptInput.value.trim()) {
+      elements.dataStatus.textContent = "Add personal or system instructions first.";
+      return;
+    }
+    const temp = { id: "draft", name: name || "Draft JSON run", prompt, systemPrompt: elements.dataSystemPromptInput.value || "" };
+    runDataTemplate(temp);
+  });
   elements.sendSkeletonBtn.addEventListener("click", sendSkeletonRequest);
   elements.saveDataTemplateBtn.addEventListener("click", saveDataTemplate);
   elements.closeJsonResultBtn.addEventListener("click", () =>
     closeModal(elements.jsonResultModal)
   );
-  elements.refreshModelsBtn.addEventListener("click", fetchModels);
+  elements.refreshModelsSkeletonBtn.addEventListener("click", fetchModels);
+  elements.refreshModelsDataBtn.addEventListener("click", fetchModels);
+  const syncComposerSettings = (sourceType) => {
+    const settings = getComposerSettings(sourceType);
+    state.llmSettings = settings;
+    applyComposerSettings("skeleton", settings);
+    applyComposerSettings("data", settings);
+    saveToLocal();
+    updateSkeletonCompiledPromptView();
+    updateDataCompiledPromptView();
+  };
+
   [
-    elements.llmModelSelect,
-    elements.llmMaxTokensInput,
-    elements.llmReasoningSelect,
-    elements.llmTimeoutConnect,
-    elements.llmTimeoutRead,
-  ].forEach((input) => {
-    input.addEventListener("change", () => {
-      readLlmSettings();
-      render();
-    });
+    ["skeleton", elements.skeletonModelSelect],
+    ["skeleton", elements.skeletonMaxTokensInput],
+    ["skeleton", elements.skeletonReasoningSelect],
+    ["skeleton", elements.skeletonTimeoutConnect],
+    ["skeleton", elements.skeletonTimeoutRead],
+    ["data", elements.dataModelSelect],
+    ["data", elements.dataMaxTokensInput],
+    ["data", elements.dataReasoningSelect],
+    ["data", elements.dataTimeoutConnect],
+    ["data", elements.dataTimeoutRead],
+  ].forEach(([type, input]) => {
+    input.addEventListener("change", () => syncComposerSettings(type));
   });
   elements.exportStateBtn.addEventListener("click", handleExportState);
   elements.copyStateBtn.addEventListener("click", handleCopyState);

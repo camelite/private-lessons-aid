@@ -441,38 +441,6 @@
             </div>
           </div>
           <div class="llm-right">
-            <div class="panel">
-              <div class="panel-header">
-                <span>LLM Settings</span>
-                <button id="refreshModelsBtn">Refresh models</button>
-              </div>
-              <div class="field">
-                <label class="small" for="llmModelSelect">Model</label>
-                <select id="llmModelSelect"></select>
-                <div class="small" id="modelCacheNote"></div>
-              </div>
-              <div class="field">
-                <label class="small" for="llmMaxTokensInput">Max output tokens</label>
-                <input id="llmMaxTokensInput" type="number" min="1" step="1" />
-              </div>
-              <div class="field">
-                <label class="small" for="llmReasoningSelect">Reasoning effort</label>
-                <select id="llmReasoningSelect">
-                  <option value="off">Off</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-              <div class="field">
-                <label class="small" for="llmTimeoutConnect">Connect timeout (seconds)</label>
-                <input id="llmTimeoutConnect" type="number" min="1" step="1" />
-              </div>
-              <div class="field">
-                <label class="small" for="llmTimeoutRead">Read timeout (seconds)</label>
-                <input id="llmTimeoutRead" type="number" min="1" step="1" />
-              </div>
-            </div>
             <div class="panel scroll-panel">
               <div class="panel-header">Details</div>
               <div id="templateDetails"></div>
@@ -504,8 +472,58 @@
           <input type="text" id="skeletonNameInput" />
         </div>
         <div class="field">
-          <label class="small">Prompt (editable)</label>
+          <label class="small">Personal instructions (editable)</label>
           <textarea id="skeletonPromptInput"></textarea>
+        </div>
+        <div class="field">
+          <label class="small">System instructions (editable, prepopulated)</label>
+          <textarea id="skeletonSystemPromptInput"></textarea>
+        </div>
+        <div class="field">
+          <label class="small">
+            <input type="checkbox" id="skeletonIncludeExampleCheckbox" /> Include JSON result as example
+          </label>
+        </div>
+        <div class="field">
+          <label class="small" for="skeletonExampleResultSelect">Example JSON result</label>
+          <select id="skeletonExampleResultSelect"></select>
+        </div>
+        <div class="field">
+          <label class="small">Compiled prompt (full request sent to LLM)</label>
+          <textarea id="skeletonCompiledPrompt" class="readonly" readonly></textarea>
+        </div>
+        <div class="field">
+          <label class="small" for="skeletonModelSelect">Model</label>
+          <div class="row">
+            <select id="skeletonModelSelect"></select>
+            <button id="refreshModelsSkeletonBtn" type="button">Refresh models</button>
+          </div>
+          <div class="small" id="skeletonModelCacheNote"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="skeletonMaxTokensInput">Max output tokens</label>
+            <input id="skeletonMaxTokensInput" type="number" min="1" step="1" />
+          </div>
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="skeletonReasoningSelect">Reasoning effort</label>
+            <select id="skeletonReasoningSelect">
+              <option value="off">Off</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="skeletonTimeoutConnect">Connect timeout (seconds)</label>
+            <input id="skeletonTimeoutConnect" type="number" min="1" step="1" />
+          </div>
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="skeletonTimeoutRead">Read timeout (seconds)</label>
+            <input id="skeletonTimeoutRead" type="number" min="1" step="1" />
+          </div>
         </div>
         <div class="actions">
           <button id="closeSkeletonModalBtn" class="ghost">Close</button>
@@ -524,13 +542,59 @@
           <input type="text" id="dataNameInput" />
         </div>
         <div class="field">
-          <label class="small">Prompt (editable)</label>
+          <label class="small">Personal instructions (editable)</label>
           <textarea id="dataPromptInput"></textarea>
+        </div>
+        <div class="field">
+          <label class="small">System instructions (editable, prepopulated)</label>
+          <textarea id="dataSystemPromptInput"></textarea>
+        </div>
+        <div class="field">
+          <label class="small">Currently selected bins / items (read-only)</label>
+          <textarea id="dataSelectedBinsPreview" class="readonly" readonly></textarea>
+        </div>
+        <div class="field">
+          <label class="small">Compiled prompt (full request sent to LLM)</label>
+          <textarea id="dataCompiledPrompt" class="readonly" readonly></textarea>
+        </div>
+        <div class="field">
+          <label class="small" for="dataModelSelect">Model</label>
+          <div class="row">
+            <select id="dataModelSelect"></select>
+            <button id="refreshModelsDataBtn" type="button">Refresh models</button>
+          </div>
+          <div class="small" id="dataModelCacheNote"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="dataMaxTokensInput">Max output tokens</label>
+            <input id="dataMaxTokensInput" type="number" min="1" step="1" />
+          </div>
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="dataReasoningSelect">Reasoning effort</label>
+            <select id="dataReasoningSelect">
+              <option value="off">Off</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="dataTimeoutConnect">Connect timeout (seconds)</label>
+            <input id="dataTimeoutConnect" type="number" min="1" step="1" />
+          </div>
+          <div class="field" style="flex:1;min-width:120px;">
+            <label class="small" for="dataTimeoutRead">Read timeout (seconds)</label>
+            <input id="dataTimeoutRead" type="number" min="1" step="1" />
+          </div>
         </div>
         <div class="actions">
           <button id="closeDataModalBtn" class="ghost">Close</button>
           <button id="saveDataDraftBtn">Save draft</button>
           <button id="saveDataTemplateBtn" class="primary">Save JSON template</button>
+          <button id="runDataTemplateBtn" class="primary">Run now</button>
         </div>
         <div class="small" id="dataStatus"></div>
       </div>
